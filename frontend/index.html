@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Contact Us</h1>
+        <form id="contactForm" class="space-y-4">
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                <input type="text" id="name" name="name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" id="email" name="email" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div>
+                <label for="message" class="block text-sm font-medium text-gray-700">Message</label>
+                <textarea id="message" name="message" rows="4" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+            </div>
+            <div>
+                <button type="submit" id="submitButton" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Submit
+                </button>
+            </div>
+        </form>
+        <div id="responseMessage" class="mt-4 text-center"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('contactForm');
+        const responseMessage = document.getElementById('responseMessage');
+        const submitButton = document.getElementById('submitButton');
+
+        // IMPORTANT: Replace this with the actual Invoke URL from your API Gateway deployment
+        const apiGatewayInvokeUrl = 'YOUR_API_GATEWAY_INVOKE_URL_GOES_HERE';
+
+        form.addEventListener('submit', event => {
+            event.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                message: document.getElementById('message').value
+            };
+            
+            submitButton.disabled = true;
+            submitButton.textContent = 'Submitting...';
+            responseMessage.textContent = '';
+            
+            fetch(apiGatewayInvokeUrl + '/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                responseMessage.textContent = 'Thank you! Your message has been sent.';
+                responseMessage.className = 'mt-4 text-center text-green-600';
+                form.reset();
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                responseMessage.textContent = 'Sorry, something went wrong. Please try again.';
+                responseMessage.className = 'mt-4 text-center text-red-600';
+            })
+            .finally(() => {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit';
+            });
+        });
+    </script>
+</body>
+</html>
