@@ -1,25 +1,39 @@
 # Configure the AWS provider
 provider "aws" {
-  region = "us-east-1" # You can change this to your preferred region
+  region = "us-east-1"
 }
 
+# --- Unique Suffix Generator ---
+# This is the key to our solution. It creates a random, memorable suffix.
+resource "random_pet" "suffix" {
+  length = 2
+}
+
+# --- Local variable for easy use of the suffix ---
+locals {
+  # We combine a project prefix with the random pet name for clarity.
+  # Example output: "scontact-witty-walrus"
+  unique_suffix = "scontact-${random_pet.suffix.id}"
+}
+
+
 # --- DynamoDB Table ---
-# This is where we will store the form submissions.
+# The table name now includes our unique suffix.
 resource "aws_dynamodb_table" "contact_table" {
-  name           = "ContactFormSubmissions"
+  name           = "ContactFormSubmissions-${local.unique_suffix}" # <-- MODIFIED
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "id"
 
   attribute {
     name = "id"
-    type = "S" # S means String
+    type = "S"
   }
 }
 
 # --- IAM Role and Policy for Lambda ---
-# This gives our Lambda function permission to write to DynamoDB and CloudWatch Logs.
+# The IAM role name is now unique.
 resource "aws_iam_role" "lambda_exec_role" {
-  name = "serverless_contact_form_role"
+  name = "${local.unique_suffix}-lambda-role" # <-- MODIFIED
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -32,8 +46,9 @@ resource "aws_iam_role" "lambda_exec_role" {
   })
 }
 
+# The IAM policy name is now unique.
 resource "aws_iam_policy" "lambda_policy" {
-  name        = "serverless_contact_form_policy"
+  name        = "${local.unique_suffix}-lambda-policy" # <-- MODIFIED
   description = "IAM policy for Lambda to access DynamoDB and CloudWatch"
   policy = jsonencode({
     Version = "2012-10-17"
@@ -58,16 +73,15 @@ resource "aws_iam_role_policy_attachment" "lambda_policy_attach" {
 }
 
 # --- Lambda Function ---
-# First, we zip our Python source code.
 data "archive_file" "lambda_zip" {
   type        = "zip"
   source_dir  = "../src/"
   output_path = "${path.module}/lambda_function.zip"
 }
 
-# Now, we define the Lambda function itself.
+# The Lambda function name is now unique.
 resource "aws_lambda_function" "contact_form_lambda" {
-  function_name    = "ContactFormHandler"
+  function_name    = "ContactFormHandler-${local.unique_suffix}" # <-- MODIFIED
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
   
@@ -77,15 +91,16 @@ resource "aws_lambda_function" "contact_form_lambda" {
 
   environment {
     variables = {
-      TABLE_NAME = aws_dynamodb_table.contact_table.name
+      # Pass the unique table name to the Lambda function
+      TABLE_NAME = aws_dynamodb_table.contact_table.name # <-- MODIFIED
     }
   }
 }
 
 # --- API Gateway (HTTP API v2) ---
-# This creates the public URL.
+# The API Gateway name is now unique.
 resource "aws_apigatewayv2_api" "http_api" {
-  name          = "ServerlessContactFormAPI"
+  name          = "ServerlessContactFormAPI-${local.unique_suffix}" # <-- MODIFIED
   protocol_type = "HTTP"
 }
 
@@ -107,7 +122,6 @@ resource "aws_apigatewayv2_stage" "default_stage" {
   auto_deploy = true
 }
 
-# This permission allows API Gateway to invoke our Lambda function.
 resource "aws_lambda_permission" "api_gateway_permission" {
   statement_id  = "AllowAPIGatewayToInvoke"
   action        = "lambda:InvokeFunction"
@@ -122,3 +136,4 @@ output "api_endpoint" {
   description = "The invoke URL for the API Gateway."
   value       = aws_apigatewayv2_stage.default_stage.invoke_url
 }
+
