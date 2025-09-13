@@ -1,6 +1,5 @@
 name: Deploy Serverless Backend to AWS
 
-# Run this workflow on pushes to the main branch
 on:
   push:
     branches:
@@ -9,11 +8,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
-    # Define the working directory as the terraform folder
-    defaults:
-      run:
-        working-directory: ./terraform
 
     steps:
       # 1. Check out your repository code
@@ -31,13 +25,15 @@ jobs:
       # 3. Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.2.0
 
       # 4. Initialize Terraform
+      # This step MUST be told where the terraform files are.
       - name: Terraform Init
         run: terraform init
+        working-directory: ./terraform
 
       # 5. Apply Terraform changes automatically
+      # This step also needs to be in the correct directory.
       - name: Terraform Apply
         run: terraform apply -auto-approve
+        working-directory: ./terraform
